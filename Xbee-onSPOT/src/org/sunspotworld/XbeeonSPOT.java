@@ -54,25 +54,7 @@ public class XbeeonSPOT extends MIDlet {
             uartSender();
             Utils.sleep(1000);                  // wait 1 second
         }
-        byte[] buffer = new byte[20];
-        String returnString = "";
-        try{
-        if(eDemo.availableUART()>1){
-            eDemo.readUART(buffer, 0, buffer.length);
-            returnString = returnString + new String(buffer,"US-ASCII").trim();
-            System.out.println(returnString);
-            for (int i = 0; i < 4; i++) {
-            leds.getLED(i).setRGB(100, 0, 0);
-            leds.getLED(i).setOn();
-            }
-            Utils.sleep(100);
-            for (int i = 0; i < 4; i++) {
-                leds.getLED(i).setOff(); 
-            }
-        }
-        }catch(IOException ex){
-            ex.printStackTrace();
-        }
+        
         Utils.sleep(1000);
         }
         
@@ -126,7 +108,20 @@ public class XbeeonSPOT extends MIDlet {
             
     }
     
-    
+    protected void readBytesFromUART(int numBytes) {
+        byte[] buffer = new byte[numBytes];
+        String returnString = "";
+        try{
+        if(eDemo.availableUART()>1){
+            eDemo.readUART(buffer, 0, buffer.length);
+            returnString = returnString + new String(buffer,"US-ASCII").trim();
+       
+            
+        }
+        }catch(IOException ex){
+            ex.printStackTrace();
+        }
+    }
     
     protected void pauseApp() {
         // This is not currently called by the Squawk VM

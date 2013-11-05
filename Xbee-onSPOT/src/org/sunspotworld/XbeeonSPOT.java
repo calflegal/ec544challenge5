@@ -53,6 +53,7 @@ public class XbeeonSPOT extends MIDlet {
         if (sw2.isClosed()) {                  // done when switch is pressed
             uartSender();
             Utils.sleep(1000);                  // wait 1 second
+            readBytesFromUART(12);
         }
         
         Utils.sleep(1000);
@@ -60,40 +61,27 @@ public class XbeeonSPOT extends MIDlet {
         
     }
     public void uartSender(){
-        byte[] snd = new byte[26];
+        byte[] snd = new byte[19];
         snd[0] = (byte)0x7E;    //start of api 
         snd[1] = (byte)0x00;    //msb of length
-        snd[2] = (byte)0x16;    //lsb of length
+        snd[2] = (byte)0x0F;    //lsb of length
         snd[3] = (byte)0x10;    // api frame for transmit
         snd[4] = (byte)0x01;    // ack
-        snd[5] = (byte)0x00;    // 64-bit addr coordinator 
-        snd[6] = (byte)0x00;
-        snd[7] = (byte)0x00;
+        snd[5] = (byte)0x00;    // 64-bit addr 
+        snd[6] = (byte)0x13;
+        snd[7] = (byte)0xA2;
         snd[8] = (byte)0x00;
-        snd[9] = (byte)0x00;
-        snd[10] = (byte)0x00;
-        snd[11] = (byte)0xFF;
-        snd[12] = (byte)0xFF;
+        snd[9] = (byte)0x40;
+        snd[10] = (byte)0xA0;
+        snd[11] = (byte)0x3C;
+        snd[12] = (byte)0x9E;
         snd[13] = (byte)0xFF;   //16-bit
         snd[14] = (byte)0xFE;
         snd[15] = (byte)0x00;
         snd[16] = (byte)0x00;
         snd[17] = (byte)0x41; //ascii A
-        snd[18] = (byte)0x41; //ascii A
-        snd[19] = (byte)0x41; //ascii A
-        snd[20] = (byte)0x41; //ascii A
-        snd[21] = (byte)0x41; //ascii A
-        snd[22] = (byte)0x41; //ascii A
-        snd[23] = (byte)0x41; //ascii A
-        snd[24] = (byte)0x41; //ascii A
+       snd[18] = (byte)0x41;
         
-        byte sum = 0;
-        for (int ii=3; ii<25;ii++){
-            sum +=snd[ii];
-        }
- //       byte sumByte = (byte) (0xFF & sum);
-        byte chexum = (byte)(0xff-sum);
-        snd[25] = chexum;
             
         eDemo.writeUART(snd);
         

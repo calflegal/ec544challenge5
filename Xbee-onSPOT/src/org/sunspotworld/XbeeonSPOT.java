@@ -47,17 +47,38 @@ public class XbeeonSPOT extends MIDlet {
         System.out.println("Our radio address = " + IEEEAddress.toDottedHex(ourAddr));
 
         ISwitch sw2 = (ISwitch) Resources.lookup(ISwitch.class, "SW2");
+        ISwitch sw1 = (ISwitch) Resources.lookup(ISwitch.class, "SW1");
         eDemo.initUART(9600, 8, 0, 1);
    
         while(true){
         if (sw2.isClosed()) {                  // done when switch is pressed
             uartSender();
             Utils.sleep(1000);                  // wait 1 second
-            readBytesFromUART(12);
+            readBytesFromUART(11);
+        }
+        else if (sw1.isClosed()) {
+            uartGetRSSI();
+            Utils.sleep(1000);                  // wait 1 second
+            readBytesFromUART(11);
         }
         
         Utils.sleep(1000);
         }
+        
+    }
+    private void uartGetRSSI() {
+        byte[] snd = new byte[8];
+        snd[0] = (byte)0x7E;    //start of api 
+        snd[1] = (byte)0x00;    //msb of length
+        snd[2] = (byte)0x04;    //lsb of length
+        snd[3] = (byte)0x08;    // api frame for transmit
+        snd[4] = (byte)0x52;    // ack
+        snd[5] = (byte)0x44;    // 64-bit addr 
+        snd[6] = (byte)0x42;
+        snd[7] = (byte)0x1F; //checksum
+        
+            
+        eDemo.writeUART(snd);
         
     }
     public void uartSender(){
@@ -75,12 +96,12 @@ public class XbeeonSPOT extends MIDlet {
         snd[10] = (byte)0xA0;
         snd[11] = (byte)0x3C;
         snd[12] = (byte)0x9E;
-        snd[13] = (byte)0xFF;   //16-bit
-        snd[14] = (byte)0xFE;
+        snd[13] = (byte)0x2D;   //16-bit
+        snd[14] = (byte)0x0F;
         snd[15] = (byte)0x00;
         snd[16] = (byte)0x00;
         snd[17] = (byte)0x41; //ascii A
-       snd[18] = (byte)0x41;
+       snd[18] = (byte)0x02; //checksum
         
             
         eDemo.writeUART(snd);
@@ -98,11 +119,11 @@ public class XbeeonSPOT extends MIDlet {
     
     protected void readBytesFromUART(int numBytes) {
         byte[] buffer = new byte[numBytes];
-        String returnString = "";
+        
         try{
         if(eDemo.availableUART()>1){
             eDemo.readUART(buffer, 0, buffer.length);
-            returnString = returnString + new String(buffer,"US-ASCII").trim();
+            System.out.println(convertToHexString(buffer));
        
             
         }
@@ -110,6 +131,21 @@ public class XbeeonSPOT extends MIDlet {
             ex.printStackTrace();
         }
     }
+    private static String convertToHexString(byte[] data) {
+StringBuffer buf = new StringBuffer();
+for (int i = 0; i < data.length; i++) {
+    int halfbyte = (data[i] >>> 4) & 0x0F;
+    int two_halfs = 0;
+    do {
+        if ((0 <= halfbyte) && (halfbyte <= 9))
+            buf.append((char) ('0' + halfbyte));
+        else
+            buf.append((char) ('a' + (halfbyte - 10)));
+            halfbyte = data[i] & 0x0F;
+        } while(two_halfs++ < 1);
+    }
+return buf.toString();
+}
     
     protected void pauseApp() {
         // This is not currently called by the Squawk VM

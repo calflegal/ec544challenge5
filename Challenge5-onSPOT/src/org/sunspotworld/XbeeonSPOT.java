@@ -14,7 +14,7 @@ import com.sun.spot.resources.transducers.ISwitch;
 import com.sun.spot.resources.transducers.ITriColorLED;
 import com.sun.spot.resources.transducers.ITriColorLEDArray;
 import com.sun.spot.resources.transducers.ILightSensor;
-import com.sun.spot.service.BootloaderListenerService;
+//import com.sun.spot.service.BootloaderListenerService;
 import com.sun.spot.util.IEEEAddress;
 import com.sun.spot.util.Utils;
 import java.io.IOException;
@@ -38,7 +38,7 @@ public class XbeeonSPOT extends MIDlet {
 
     protected void startApp() throws MIDletStateChangeException {
         System.out.println("Hello, world");
-        BootloaderListenerService.getInstance().start();   // monitor the USB (if connected) and recognize commands from host
+   //     BootloaderListenerService.getInstance().start();   // monitor the USB (if connected) and recognize commands from host
         RadiogramConnection rCon = null;
         Datagram dg = null;
         try {
@@ -65,6 +65,8 @@ public class XbeeonSPOT extends MIDlet {
            //state machine
            switch (state) {
                case 0:
+                        leds.getLED(0).setRGB(0, 0, 100);
+                        leds.getLED(0).setOn();
                    //reset the datagram
                    dg.reset();
                    //reset our submission array
@@ -114,11 +116,14 @@ public class XbeeonSPOT extends MIDlet {
                        System.out.println("Strength of mote 1: " + sigStrength);
                        submitArray[0] = sigStrength;
                        //move on
+                       leds.getLED(0).setOff();
                        state = 1;
                         
                    }
                    break;
                case 1:
+                   leds.getLED(1).setRGB(0, 0, 100);
+                        leds.getLED(1).setOn();
                    //System.out.println("in state 1");
                    //clear uart buffer
                    try {
@@ -165,11 +170,14 @@ public class XbeeonSPOT extends MIDlet {
                        System.out.println("Strength of mote 2: " + sigStrength);
                        submitArray[1] = sigStrength;
                        //move on
+                       leds.getLED(1).setOff();
                        state = 2;
                         
                    }
                    break;
                case 2:
+                   leds.getLED(2).setRGB(0, 0, 100);
+                   leds.getLED(2).setOn();
                    //clear uart buffer
                    try {
                    int availableBytes = eDemo.availableUART();
@@ -229,6 +237,7 @@ public class XbeeonSPOT extends MIDlet {
                        }
                        System.out.println("Heading back to state 0");
                        //move on
+                       leds.getLED(2).setOff();
                        state = 0;
                         
                    }

@@ -110,15 +110,16 @@ public class XbeeonSPOT extends MIDlet {
                    //valid rssi data
                    else {
                        int sigStrength = (int) strengthResponse[8];
-                       sigStrength += -1;
+                       sigStrength *= -1;
                        System.out.println("Strength of mote 1: " + sigStrength);
                        submitArray[0] = sigStrength;
                        //move on
-                       state = 3;
+                       state = 1;
                         
                    }
                    break;
                case 1:
+                   //System.out.println("in state 1");
                    //clear uart buffer
                    try {
                    int availableBytes = eDemo.availableUART();
@@ -133,6 +134,7 @@ public class XbeeonSPOT extends MIDlet {
                    pingMoteTwo();
                    response = readBytesFromUART(11);
                    if (response == null) {
+                       System.out.println("response null");
                        state = 1;
                        break;
                    }
@@ -280,7 +282,7 @@ public class XbeeonSPOT extends MIDlet {
             
     }
     public void pingMoteTwo(){
-        //serial D6CF
+        //serial 0606
         byte[] snd = new byte[19];
         snd[0] = (byte)0x7E;    //start of api 
         snd[1] = (byte)0x00;    //msb of length
@@ -293,14 +295,14 @@ public class XbeeonSPOT extends MIDlet {
         snd[8] = (byte)0x00;
         snd[9] = (byte)0x40;
         snd[10] = (byte)0xA0;
-        snd[11] = (byte)0x3C;
-        snd[12] = (byte)0x9E;
-        snd[13] = (byte)0x2D;   //16-bit
-        snd[14] = (byte)0x0F;
+        snd[11] = (byte)0x3E;
+        snd[12] = (byte)0x02;
+        snd[13] = (byte)0x06;   //16-bit
+        snd[14] = (byte)0x06;
         snd[15] = (byte)0x00;
         snd[16] = (byte)0x00;
         snd[17] = (byte)0x41; //ascii A
-       snd[18] = (byte)0x02; //checksum
+       snd[18] = (byte)0xCC; //checksum
         
             
         eDemo.writeUART(snd);
@@ -321,14 +323,14 @@ public class XbeeonSPOT extends MIDlet {
         snd[8] = (byte)0x00;
         snd[9] = (byte)0x40;
         snd[10] = (byte)0xA0;
-        snd[11] = (byte)0x3C;
-        snd[12] = (byte)0x9E;
-        snd[13] = (byte)0x2D;   //16-bit
-        snd[14] = (byte)0x0F;
+        snd[11] = (byte)0x3D;
+        snd[12] = (byte)0xE7;
+        snd[13] = (byte)0x1D;   //16-bit
+        snd[14] = (byte)0x65;
         snd[15] = (byte)0x00;
         snd[16] = (byte)0x00;
         snd[17] = (byte)0x41; //ascii A
-       snd[18] = (byte)0x02; //checksum
+       snd[18] = (byte)0x72; //checksum
         
             
         eDemo.writeUART(snd);

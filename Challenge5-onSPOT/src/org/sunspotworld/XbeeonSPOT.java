@@ -5,7 +5,8 @@
  */
 
 package org.sunspotworld;
-
+import java.io.IOException;
+import com.sun.spot.io.j2me.radiogram.RadiogramConnection;
 import com.sun.spot.peripheral.radio.RadioFactory;
 import com.sun.spot.sensorboard.EDemoBoard;
 import com.sun.spot.resources.Resources;
@@ -17,6 +18,8 @@ import com.sun.spot.service.BootloaderListenerService;
 import com.sun.spot.util.IEEEAddress;
 import com.sun.spot.util.Utils;
 import java.io.IOException;
+import javax.microedition.io.Connector;
+import javax.microedition.io.Datagram;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
 
@@ -24,16 +27,28 @@ import javax.microedition.midlet.MIDletStateChangeException;
  * This connects Xbee as a peripheral, extending radio coverage
  * @author Yuting Zhang <ytzhang@bu.edu>
  */
-public class XbeeonSPOT extends MIDlet {
 
+public class XbeeonSPOT extends MIDlet {
+    
+    static final boolean debug = true;
     private ITriColorLEDArray leds = (ITriColorLEDArray) Resources.lookup(ITriColorLEDArray.class);
     private EDemoBoard eDemo = EDemoBoard.getInstance();
     private ILightSensor light = (ILightSensor)Resources.lookup(ILightSensor.class);
+    private ISwitch sw2 = (ISwitch) Resources.lookup(ISwitch.class, "SW2");
+    private ISwitch sw1 = (ISwitch) Resources.lookup(ISwitch.class, "SW1");
+    private static final int HOST_PORT = 65;
 
     protected void startApp() throws MIDletStateChangeException {
         System.out.println("Hello, world");
         BootloaderListenerService.getInstance().start();   // monitor the USB (if connected) and recognize commands from host
-        
+        RadiogramConnection rCon = null;
+        Datagram dg = null;
+        try {
+        rCon = (RadiogramConnection) Connector.open("radiogram://broadcast:" + HOST_PORT);
+            dg = rCon.newDatagram(50);  // only sending 12 bytes of data
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         for (int i = 0; i < leds.size(); i++) {
                         leds.getLED(i).setRGB(0, 0, 100);
                         leds.getLED(i).setOn();
@@ -46,11 +61,21 @@ public class XbeeonSPOT extends MIDlet {
         long ourAddr = RadioFactory.getRadioPolicyManager().getIEEEAddress();
         System.out.println("Our radio address = " + IEEEAddress.toDottedHex(ourAddr));
 
-        ISwitch sw2 = (ISwitch) Resources.lookup(ISwitch.class, "SW2");
-        ISwitch sw1 = (ISwitch) Resources.lookup(ISwitch.class, "SW1");
+       
         eDemo.initUART(9600, 8, 0, 1);
-   
         while(true){
+           int state = 0;
+           //state machine
+           switch (state) {
+               case 0:
+                   dg.reset();
+                   pingMoteOne();
+                   byte response[] = readBytesFromUART(11);
+                   break;
+               case 1:
+                   
+               default:break;
+           }
         if (sw2.isClosed()) {                  // done when switch is pressed
             uartSender();
             Utils.sleep(1000);                  // wait 1 second

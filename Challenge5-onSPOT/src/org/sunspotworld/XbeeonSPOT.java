@@ -23,10 +23,6 @@ import javax.microedition.io.Datagram;
 import javax.microedition.midlet.MIDlet;
 import javax.microedition.midlet.MIDletStateChangeException;
 
-/**
- * This connects Xbee as a peripheral, extending radio coverage
- * @author Yuting Zhang <ytzhang@bu.edu>
- */
 
 public class XbeeonSPOT extends MIDlet {
     
@@ -37,6 +33,8 @@ public class XbeeonSPOT extends MIDlet {
     private ISwitch sw2 = (ISwitch) Resources.lookup(ISwitch.class, "SW2");
     private ISwitch sw1 = (ISwitch) Resources.lookup(ISwitch.class, "SW1");
     private static final int HOST_PORT = 65;
+    private byte submitArray[] = new byte[4];
+    private int state =0;
 
     protected void startApp() throws MIDletStateChangeException {
         System.out.println("Hello, world");
@@ -64,30 +62,63 @@ public class XbeeonSPOT extends MIDlet {
        
         eDemo.initUART(9600, 8, 0, 1);
         while(true){
-           int state = 0;
            //state machine
            switch (state) {
                case 0:
+                   //reset the datagram
                    dg.reset();
+                   //reset our submission array
+                   for (int i=0; i<4; i++)
+                       submitArray[i] = 0x00;
+                   //clear uart buffer
+                   try {
+                   int availableBytes = eDemo.availableUART();
+                   if (availableBytes > 1) {
+                    byte tempbuff[] = new byte[availableBytes];
+                   eDemo.readUART(tempbuff, 0, availableBytes);
+                   }
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   }
+                   //actually get and check data from first mote
                    pingMoteOne();
                    byte response[] = readBytesFromUART(11);
-                   break;
+                   if (response == null) {
+                       state = 0;
+                       break;
+                   }
+                   //catch a bad ping response
+                   if (response[3] != (byte)0x8b) {
+                       //start over
+                       state = 0;
+                       System.out.println("failure pinging mote1");
+                       break;
+                   }
+                   //read the latest rssi
+                   uartGetRSSI();
+                   byte strengthResponse[] = readBytesFromUART(10);
+                   if (strengthResponse == null) {
+                       state =0;
+                       break;
+                   }
+                   if (strengthResponse[3] != (byte) 0x88) {
+                       //start over
+                       state = 0;
+                       System.out.println("failure reading rssi from mote1");
+                       break;
+                   }
+                   //valid rssi data
+                   else {
+                       int sigStrength = (int) strengthResponse[8];
+                       System.out.println("Strength of mote 1: " + sigStrength);
+                       return;
+                       
+                   }
+                //   break;
                case 1:
                    
                default:break;
            }
-        if (sw2.isClosed()) {                  // done when switch is pressed
-            uartSender();
-            Utils.sleep(1000);                  // wait 1 second
-            readBytesFromUART(11);
-        }
-        else if (sw1.isClosed()) {
-            uartGetRSSI();
-            Utils.sleep(1000);                  // wait 1 second
-            readBytesFromUART(11);
-        }
-        
-        Utils.sleep(1000);
         }
         
     }
@@ -104,9 +135,10 @@ public class XbeeonSPOT extends MIDlet {
         
             
         eDemo.writeUART(snd);
+        Utils.sleep(200);
         
     }
-    public void uartSender(){
+    public void pingMoteOne(){
         byte[] snd = new byte[19];
         snd[0] = (byte)0x7E;    //start of api 
         snd[1] = (byte)0x00;    //msb of length
@@ -130,32 +162,28 @@ public class XbeeonSPOT extends MIDlet {
         
             
         eDemo.writeUART(snd);
-        
-        for (int i = 4; i < 8; i++) {
-            leds.getLED(i).setRGB(0, 100, 0);
-            leds.getLED(i).setOn();
-        }
         Utils.sleep(100);
-        for (int i = 4; i < 8; i++) {
-            leds.getLED(i).setOff(); 
-        }
             
     }
     
-    protected void readBytesFromUART(int numBytes) {
+    protected byte[] readBytesFromUART(int numBytes) {
         byte[] buffer = new byte[numBytes];
         
         try{
         if(eDemo.availableUART()>1){
             eDemo.readUART(buffer, 0, buffer.length);
             System.out.println(convertToHexString(buffer));
+            return buffer;
        
             
         }
+        else return null;
         }catch(IOException ex){
             ex.printStackTrace();
         }
+        return null;
     }
+    
     private static String convertToHexString(byte[] data) {
 StringBuffer buf = new StringBuffer();
 for (int i = 0; i < data.length; i++) {

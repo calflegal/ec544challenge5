@@ -33,7 +33,7 @@ public class XbeeonSPOT extends MIDlet {
     private ISwitch sw2 = (ISwitch) Resources.lookup(ISwitch.class, "SW2");
     private ISwitch sw1 = (ISwitch) Resources.lookup(ISwitch.class, "SW1");
     private static final int HOST_PORT = 65;
-    private byte submitArray[] = new byte[4];
+    private int submitArray[] = new int[4];
     private int state =0;
 
     protected void startApp() throws MIDletStateChangeException {
@@ -69,7 +69,7 @@ public class XbeeonSPOT extends MIDlet {
                    dg.reset();
                    //reset our submission array
                    for (int i=0; i<4; i++)
-                       submitArray[i] = 0x00;
+                       submitArray[i] = 0;
                    //clear uart buffer
                    try {
                    int availableBytes = eDemo.availableUART();
@@ -105,18 +105,132 @@ public class XbeeonSPOT extends MIDlet {
                        //start over
                        state = 0;
                        System.out.println("failure reading rssi from mote1");
-                       break;
+                       
                    }
                    //valid rssi data
                    else {
                        int sigStrength = (int) strengthResponse[8];
+                       sigStrength += -1;
                        System.out.println("Strength of mote 1: " + sigStrength);
-                       return;
+                       submitArray[0] = sigStrength;
+                       //move on
+                       state = 3;
+                        
+                   }
+                   break;
+               case 1:
+                   //clear uart buffer
+                   try {
+                   int availableBytes = eDemo.availableUART();
+                   if (availableBytes > 1) {
+                    byte tempbuff[] = new byte[availableBytes];
+                   eDemo.readUART(tempbuff, 0, availableBytes);
+                   }
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   }
+                   //actually get and check data from second mote
+                   pingMoteTwo();
+                   response = readBytesFromUART(11);
+                   if (response == null) {
+                       state = 1;
+                       break;
+                   }
+                   //catch a bad ping response
+                   if (response[3] != (byte)0x8b) {
+                       //start over
+                       state = 1;
+                       System.out.println("failure pinging mote2");
+                       break;
+                   }
+                   //read the latest rssi
+                   uartGetRSSI();
+                   strengthResponse = readBytesFromUART(10);
+                   if (strengthResponse == null) {
+                       state =1;
+                       break;
+                   }
+                   if (strengthResponse[3] != (byte) 0x88) {
+                       //start over
+                       state = 1;
+                       System.out.println("failure reading rssi from mote2");
                        
                    }
-                //   break;
-               case 1:
-                   
+                   //valid rssi data
+                   else {
+                       int sigStrength = (int) strengthResponse[8];
+                       sigStrength *= -1;
+                       System.out.println("Strength of mote 2: " + sigStrength);
+                       submitArray[1] = sigStrength;
+                       //move on
+                       state = 2;
+                        
+                   }
+                   break;
+               case 2:
+                   //clear uart buffer
+                   try {
+                   int availableBytes = eDemo.availableUART();
+                   if (availableBytes > 1) {
+                    byte tempbuff[] = new byte[availableBytes];
+                   eDemo.readUART(tempbuff, 0, availableBytes);
+                   }
+                   } catch (IOException e) {
+                       e.printStackTrace();
+                   }
+                   //actually get and check data from third mote
+                   pingMoteThree();
+                   response = readBytesFromUART(11);
+                   if (response == null) {
+                       state = 2;
+                       break;
+                   }
+                   //catch a bad ping response
+                   if (response[3] != (byte)0x8b) {
+                       //start over
+                       state = 2;
+                       System.out.println("failure pinging mote3");
+                       break;
+                   }
+                   //read the latest rssi
+                   uartGetRSSI();
+                   strengthResponse = readBytesFromUART(10);
+                   if (strengthResponse == null) {
+                       state =2;
+                       break;
+                   }
+                   if (strengthResponse[3] != (byte) 0x88) {
+                       //start over
+                       state = 2;
+                       System.out.println("failure reading rssi from mote3");
+                       
+                   }
+                   //valid rssi data
+                   else {
+                       int sigStrength = (int) strengthResponse[8];
+                       sigStrength *= -1;
+                       System.out.println("Strength of mote 3: " + sigStrength);
+                       submitArray[2] = sigStrength;
+                       //transmit
+                       for (int j=0; j<3; j++) {
+                           try {
+                           dg.writeInt(submitArray[j]);
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                       }
+                       System.out.println("about to send datagram");
+                       try {
+                       rCon.send(dg);
+                       } catch (IOException e) {
+                           e.printStackTrace();
+                       }
+                       System.out.println("Heading back to state 0");
+                       //move on
+                       state = 0;
+                        
+                   }
+                   break; 
                default:break;
            }
         }
@@ -139,6 +253,62 @@ public class XbeeonSPOT extends MIDlet {
         
     }
     public void pingMoteOne(){
+        byte[] snd = new byte[19];
+        snd[0] = (byte)0x7E;    //start of api 
+        snd[1] = (byte)0x00;    //msb of length
+        snd[2] = (byte)0x0F;    //lsb of length
+        snd[3] = (byte)0x10;    // api frame for transmit
+        snd[4] = (byte)0x01;    // ack
+        snd[5] = (byte)0x00;    // 64-bit addr 
+        snd[6] = (byte)0x13;
+        snd[7] = (byte)0xA2;
+        snd[8] = (byte)0x00;
+        snd[9] = (byte)0x40;
+        snd[10] = (byte)0xA0;
+        snd[11] = (byte)0x3C;
+        snd[12] = (byte)0x9E;
+        snd[13] = (byte)0x2D;   //16-bit
+        snd[14] = (byte)0x0F;
+        snd[15] = (byte)0x00;
+        snd[16] = (byte)0x00;
+        snd[17] = (byte)0x41; //ascii A
+       snd[18] = (byte)0x02; //checksum
+        
+            
+        eDemo.writeUART(snd);
+        Utils.sleep(100);
+            
+    }
+    public void pingMoteTwo(){
+        //serial D6CF
+        byte[] snd = new byte[19];
+        snd[0] = (byte)0x7E;    //start of api 
+        snd[1] = (byte)0x00;    //msb of length
+        snd[2] = (byte)0x0F;    //lsb of length
+        snd[3] = (byte)0x10;    // api frame for transmit
+        snd[4] = (byte)0x01;    // ack
+        snd[5] = (byte)0x00;    // 64-bit addr 
+        snd[6] = (byte)0x13;
+        snd[7] = (byte)0xA2;
+        snd[8] = (byte)0x00;
+        snd[9] = (byte)0x40;
+        snd[10] = (byte)0xA0;
+        snd[11] = (byte)0x3C;
+        snd[12] = (byte)0x9E;
+        snd[13] = (byte)0x2D;   //16-bit
+        snd[14] = (byte)0x0F;
+        snd[15] = (byte)0x00;
+        snd[16] = (byte)0x00;
+        snd[17] = (byte)0x41; //ascii A
+       snd[18] = (byte)0x02; //checksum
+        
+            
+        eDemo.writeUART(snd);
+        Utils.sleep(100);
+            
+    }
+    public void pingMoteThree(){
+        //serial 1D65
         byte[] snd = new byte[19];
         snd[0] = (byte)0x7E;    //start of api 
         snd[1] = (byte)0x00;    //msb of length

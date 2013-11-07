@@ -28,7 +28,12 @@ package org.sunspotworld.demo;
 import com.sun.spot.io.j2me.radiogram.*;
 
 import com.sun.spot.peripheral.ota.OTACommandServer;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.util.Date;
 import javax.microedition.io.*;
 
@@ -61,6 +66,8 @@ public class SendDataDemoHostApplication {
              throw e;
         }
 
+        File myFile = new File("C:\\Users\\wei\\Documents\\MATLAB\\Matlab Code\\xbeedata.txt");
+
         // Main data collection loop
         while (true) {
             try {
@@ -72,7 +79,14 @@ public class SendDataDemoHostApplication {
 
                 int spot1signal = dg.readInt();        
                 int spot2signal = dg.readInt(); 
-                int spot3signal = dg.readInt(); 
+                int spot3signal = dg.readInt();
+                
+                double converted1 = convertDBMS(spot1signal);
+                double converted2 = convertDBMS(spot2signal);
+                double converted3 = convertDBMS(spot3signal);
+                writeXbeeToFile(converted1, converted2, converted3, myFile);
+            
+        
                 System.out.println("router one dbm: " + spot1signal);
                 System.out.println("router two dbm: " + spot2signal);
                 System.out.println("router three dbm: " + spot3signal);
@@ -95,4 +109,34 @@ public class SendDataDemoHostApplication {
         SendDataDemoHostApplication app = new SendDataDemoHostApplication();
         app.run();
     }
+    
+        /* dummy function to convert dBms to feet
+     * will write real conversion function when we have RSSI sample data
+     * args: takes a dBm value 
+     * return: the measurement in feet
+     */
+    public static double convertDBMS(double DBMSval)
+    {
+        double returnVal;
+        
+        returnVal = (DBMSval * (-1.84)) - 56.68;
+        
+        return returnVal;
+    }
+    
+    public static void writeXbeeToFile(double one, double two, double three, File file)
+    {
+        DecimalFormat df = new DecimalFormat("00.000");
+        try {
+            
+          BufferedWriter output = new BufferedWriter(new FileWriter(file));
+          output.write(df.format(one) + ";" + df.format(two) + ";" + df.format(three));
+          output.close();
+          
+        } catch ( IOException e ) {
+           e.printStackTrace();
+        }
+        
+    }
+
 }
